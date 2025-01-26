@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import os
 
 st.set_page_config(page_title="JSON Config Builder", layout="wide")
 
@@ -13,25 +14,19 @@ def add_entry(path, key, value):
     current[key] = value
 
 def remove_entry(path, key):
+    if not path:  
+        st.session_state.config.pop(key, None)
+        return
+
     current = st.session_state.config
     for p in path[:-1]:
         current = current.get(p, {})
     if isinstance(current, dict):
         current.pop(key, None)
 
-def get_nested_keys(config, prefix=""):
-    keys = []
-    for k, v in config.items():
-        new_key = f"{prefix}.{k}" if prefix else k
-        if isinstance(v, dict):
-            keys.extend(get_nested_keys(v, new_key))
-        else:
-            keys.append(new_key)
-    return keys
+st.sidebar.header("Configuration Options")
 
-st.title("JSON Config Builder")
-
-st.sidebar.header("Add Entry")
+st.sidebar.subheader("Add Entry")
 path_input = st.sidebar.text_input("Path (dot-separated, e.g., parent.child)")
 key = st.sidebar.text_input("Key")
 value = st.sidebar.text_input("Value")
@@ -45,12 +40,11 @@ if st.sidebar.button("Add/Update"):
     else:
         st.sidebar.error("Path, Key, and Value cannot be empty")
 
-st.sidebar.header("Remove Entry")
+st.sidebar.subheader("Remove Entry")
 remove_path_input = st.sidebar.text_input("Path to Key (dot-separated)")
 
-remove_path = remove_path_input.split(".") if remove_path_input else []
-
 if st.sidebar.button("Remove"):
+    remove_path = remove_path_input.split(".") if remove_path_input else []
     if remove_path:
         *parent_path, key_to_remove = remove_path
         remove_entry(parent_path, key_to_remove)
@@ -58,7 +52,7 @@ if st.sidebar.button("Remove"):
     else:
         st.sidebar.error("Path cannot be empty")
 
-st.sidebar.header("Upload JSON Config")
+st.sidebar.subheader("Upload JSON Config")
 uploaded_file = st.sidebar.file_uploader("Choose a JSON file", type="json")
 
 if uploaded_file:
@@ -68,6 +62,8 @@ if uploaded_file:
         st.sidebar.success("Configuration file uploaded successfully.")
     except Exception as e:
         st.sidebar.error(f"Error loading JSON: {e}")
+
+st.title("JSON Config Builder")
 
 col1, col2 = st.columns([3, 1])
 with col1:
